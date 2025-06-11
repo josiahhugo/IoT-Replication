@@ -1,16 +1,18 @@
 ===NOTES FOR REPLICATION===
 
 Permission Access:
-    sudo chown -R josia:josia /home/josia/IoTMalwareDetection-master
+    sudo chown -R josiah:josiah /home/josiah/research/IoTMalwareDetection-master
 
 Extract OpCodes:
     1) Install the ARM binutils:
         sudo apt-get update
         sudo apt-get install binutils-arm-linux-gnueabihf
 
-    2) grant persmission to directory:
-       sudo chown $USER:$USER .
-       chmod u+w .
+    2) Create the directory|Then grant permissions:
+       mkdir -p /home/josiah/research/IoTMalwareDetection-master/Benign/all_goodware/combined1
+
+       sudo chown -R $USER:$USER /home/josiah/research/IoTMalwareDetection-master/Benign/all_goodware/combined1
+       chmod u+w /home/josiah/research/IoTMalwareDetection-master/Benign/all_goodware/combined1
     
     3) option to make sure you can write for all files:
        chmod u+w *
@@ -21,6 +23,45 @@ Extract OpCodes:
             arm-linux-gnueabihf-objdump -d "$f" | awk '/^[ ]+[a-f0-9]+:/ {print $4}' > "${f}.opcode"
         fi
        done
+    4) check if opcode files were created:
+        ls *.opcode
+
+Creating a venv:
+    1) sudo apt install python3.12-venv
+    2) python3 -m venv venv
 
 Feature Selection using Class-wise Information Gain:
-    
+    1) install libraries:
+        pip install numpy
+        pip install pandas
+        pip install scikit-learn
+    2) Reading Benign Opcode files:
+        = Go through combined1-3 folders where each .opcode file (disassembled binary) is read
+        and treated as a single text string of opcodes    
+        = Each string is added to the samples list, and 0 is added to labels to mark it as benign
+    3) Reading malware Opcode files
+        = Similar process to benign but malware
+    4) Total Summary:
+        = 1207 samples in total --> each sample is a sequence of opcodes
+    5) N-Gram Vectorization:
+        = CountVectorizer to convert opcode sequences into numerical vectors
+        = N-gram range (1, 2) --> captures individual opcodes (1-grams) and pairs of opcodes (2-grams)
+        = max_features=10000 --> restricts to the 10,000 mostt frequent opcode patters to avoid memory issues
+            = 5000 for fast testing | 10000 for balance | 50000 if your machine is strong
+        = Output: 1207x1000 matrix (x) where:
+            = rows is samples
+            = columns is opcode n-grams
+            = values is counts of those n-grams
+    6) CIG Calculation:
+        = computes how much informative each feature (n-gram) is dor distiguishing between benign and malware
+        = CIG is computted per feature with respect to both classes
+        = Formula combines information gain for each class --> rewards features that are:
+            = common in one class
+            = rare in the other
+    7) Feature selection:
+        = Combines benign and malware CIG scores per feature
+        = Selects top 82 features with the highest combined scores
+        = Reduces the original 10,000-dimension matrix to 82 dimensions
+    8) Final output:
+        = New X_selected matrix has 1207 samples & only the 82 most informative n-gram features
+        = Sample output: topopcode patterns... likely hexadecimal instruction encodings
