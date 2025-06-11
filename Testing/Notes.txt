@@ -1,0 +1,26 @@
+===NOTES FOR REPLICATION===
+
+Permission Access:
+    sudo chown -R josia:josia /home/josia/IoTMalwareDetection-master
+
+Extract OpCodes:
+    1) Install the ARM binutils:
+        sudo apt-get update
+        sudo apt-get install binutils-arm-linux-gnueabihf
+
+    2) grant persmission to directory:
+       sudo chown $USER:$USER .
+       chmod u+w .
+    
+    3) option to make sure you can write for all files:
+       chmod u+w *
+    
+    4) run opcode extraction script:
+       for f in *; do
+        if file "$f" | grep -q 'ELF 32-bit LSB executable, ARM'; then
+            arm-linux-gnueabihf-objdump -d "$f" | awk '/^[ ]+[a-f0-9]+:/ {print $4}' > "${f}.opcode"
+        fi
+       done
+
+Feature Selection using Class-wise Information Gain:
+    
