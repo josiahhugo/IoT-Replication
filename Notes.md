@@ -2,32 +2,6 @@
 
 **WORK IN WSL**
 
-Permission Access:
-    sudo chown -R josiah:josiah /home/josiah/research/IoTMalwareDetection-master
-
-Extract OpCodes (**WRONG**):
-    1) Install the ARM binutils:
-        sudo apt-get update
-        sudo apt-get install binutils-arm-linux-gnueabihf
-
-    2) Create the directory|Then grant permissions:
-       mkdir -p /home/josiah/research/IoTMalwareDetection-master/Benign/all_goodware/combined1
-
-       sudo chown -R $USER:$USER /home/josiah/research/IoTMalwareDetection-master/Benign/all_goodware/combined1
-       chmod u+w /home/josiah/research/IoTMalwareDetection-master/Benign/all_goodware/combined1
-    
-    3) option to make sure you can write for all files:
-       chmod u+w *
-    
-    4) run opcode extraction script:
-       for f in *; do
-        if file "$f" | grep -q 'ELF 32-bit LSB executable, ARM'; then
-            arm-linux-gnueabihf-objdump -d "$f" | awk '/^[ ]+[a-f0-9]+:/ {print $4}' > "${f}.opcode"
-        fi
-       done
-    4) check if opcode files were created:
-        ls *.opcode
-
 **CORRECTED EXTRACTING OPCODES**:
     1) Install the ARM binutils:
         sudo apt-get update
