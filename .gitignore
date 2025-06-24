@@ -1,2 +1,4 @@
 /venv
 /IoTMalwareDetection-master
+**.pkl
+/__pycache__/
