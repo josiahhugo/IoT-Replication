@@ -3,10 +3,13 @@ import subprocess
 import re
 import magic
 
-BENIGN_ROOT = "/home/josiah/research/IoTMalwareDetection-master/IoTMalwareDetection-master/Benign/all_goodware/"
-MALWARE_ROOT = "/home/josiah/research/IoTMalwareDetection-master/IoTMalwareDetection-master/Malware(Disassembeled)/"
+BENIGN_ROOT = "IoTMalwareDetection-master/Benign/all_goodware/"
+MALWARE_ROOT = "IoTMalwareDetection-master/Malware(Disassembeled)/"
 
-opcode_regex = re.compile(r'^\s*[0-9a-fA-F]+:\s+[0-9a-fA-F]+\s+([a-zA-Z.]+)')
+
+# DETECTS MULTIPLE OPCODES PER LINE
+opcode_regex = re.compile(r'^\s*[0-9a-fA-F]+:\s+[0-9a-fA-F\s]+\s+(.+)')
+instruction_regex = re.compile(r'\b([a-zA-Z][a-zA-Z0-9.]*)\b')
 
 
 def process_directory(root_dir, is_disassembled=False):
@@ -52,9 +55,14 @@ def process_directory(root_dir, is_disassembled=False):
                     for line in asm_file:
                         match = opcode_regex.match(line)
                         if match:
-                            opcode = match.group(1)
-                            opcode_file.write(opcode + '\n')
-                            extracted = True
+                            instruction_part = match.group(1)
+                            # Find all opcodes in the instruction part
+                            opcodes = instruction_regex.findall(instruction_part)
+                            for opcode in opcodes:
+                                # Skip register names and immediate values
+                                if not opcode.lower().startswith(('r', 'sp', 'lr', 'pc', 'fp', 'ip')) and not opcode.isdigit():
+                                    opcode_file.write(opcode + '\n')
+                                    extracted = True
                 if not extracted:
                     print(f"No opcodes found in {file_path}")
             except Exception as e:

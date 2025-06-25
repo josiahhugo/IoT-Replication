@@ -4,15 +4,18 @@
 
 **CORRECTED EXTRACTING OPCODES**:
     1) Install the ARM binutils:
+        ```bash
         sudo apt-get update
-        sudo apt-get install binutils-arm-linux-gnueabihf
-        (to automatically check for valid ELF files)
+        sudo apt-get upgrade
+        sudo apt-get install binutils-arm-linux-gnueabihf binutils-arm-linux-gnueabi
+        #(to automatically check for valid ELF files)
         pip install python-magic
         sudo apt install libmagic1
-
-    2) Correct script (for individual file):
-        arm-linux-gnueabi-objdump -d /home/josiah/research/IoTMalwareDetection-master/Benign/all_goodware/combined1/3Dc
-    3) Run extract_opcodes.py
+        ```
+    2) Run extract_opcodes.py
+        ```python
+        python extract_opcodes.py
+        ```
 
 
 Creating a venv:
