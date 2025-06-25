@@ -3,8 +3,8 @@ import subprocess
 import re
 import magic
 
-BENIGN_ROOT = "IoTMalwareDetection-master/Benign/all_goodware/"
-MALWARE_ROOT = "IoTMalwareDetection-master/Malware(Disassembeled)/"
+BENIGN_ROOT = "/home/josiah/research/IoT-Replication/IoTMalwareDetection-master/IoTMalwareDetection-master/Benign/all_goodware/"
+MALWARE_ROOT = "/home/josiah/research/IoT-Replication/IoTMalwareDetection-master/IoTMalwareDetection-master/Malware(Disassembeled)/"
 
 
 # DETECTS MULTIPLE OPCODES PER LINE

@@ -21,7 +21,7 @@ sns.set_palette("husl")
 
 def load_cig_results():
     """Load the CIG results from pickle file"""
-    with open("cig_output.pkl", "rb") as f:
+    with open("improved_cig_output.pkl", "rb") as f:
         data = pickle.load(f)
     return data
 

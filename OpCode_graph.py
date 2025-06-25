@@ -7,7 +7,7 @@ import math
 from alive_progress import alive_bar # for visual feedback
 
 # Load data --> samples and selected_feature_names are available in graph construction
-with open("cig_output.pkl", "rb") as f:
+with open("improved_cig_output.pkl", "rb") as f:
     data = pickle.load(f)
 
 samples = data["samples"] # list of opcode sequences (1 per sample)

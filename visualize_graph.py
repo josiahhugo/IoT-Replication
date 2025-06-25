@@ -12,7 +12,7 @@ import math
 with open("opcode_graphs.pkl", "rb") as f:
     adj_matrices = pickle.load(f)
 
-with open("cig_output.pkl", "rb") as f:
+with open("improved_cig_output.pkl", "rb") as f:
     data = pickle.load(f)
     feature_names = data["selected_feature_names"]
 

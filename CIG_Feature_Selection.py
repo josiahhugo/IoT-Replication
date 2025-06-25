@@ -79,7 +79,7 @@ def main():
     benign_files = []
 
     for subdir in benign_subdirs:
-        path = f'/home/josiah/research/IoTMalwareDetection-master/IoTMalwareDetection-master/Benign/all_goodware/{subdir}'
+        path = f'/home/josiah/research/IoT-Replication/IoTMalwareDetection-master/IoTMalwareDetection-master/Benign/all_goodware/{subdir}'
         benign_files.extend([os.path.join(path, f) for f in os.listdir(path) if f.endswith('.opcode')])
 
     with alive_bar(len(benign_files), title="Loading benign samples") as bar:
@@ -92,7 +92,7 @@ def main():
 
     # read malware opcodes with progress bar
     print("\n==Reading malware opcode files==")
-    malware_path = '/home/josiah/research/IoTMalwareDetection-master/IoTMalwareDetection-master/Malware(Disassembeled)/'
+    malware_path = '/home/josiah/research/IoT-Replication/IoTMalwareDetection-master/IoTMalwareDetection-master/Malware(Disassembeled)/'
     malware_files = [f for f in os.listdir(malware_path) if f.endswith('.opcode')]
 
     with alive_bar(len(malware_files), title="Loading malware samples") as bar:

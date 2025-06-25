@@ -1,6 +1,6 @@
 # threading
 import threading
-from CIG_Feature_Selection import main as cig_main
+from CIG_Feature_Selection_improved import main as cig_main
 from OpCode_graph import main as graph_main
 from Eigenspace_Transformation import main as eigenspace_main
 # from adaboost_baseline import main as adaboost_main
