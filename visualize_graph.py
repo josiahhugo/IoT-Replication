@@ -7,9 +7,15 @@ import numpy as np
 import networkx as nx # to create graphs
 import matplotlib.pyplot as plt # for plotting
 import math
+import os
+
+# Create results directory
+RESULTS_DIR = "OpCode Graph Results"
+os.makedirs(RESULTS_DIR, exist_ok=True)
+print(f"Graph visualizations will be saved to: {RESULTS_DIR}/")
 
 # Load the adjacency matrices & features
-with open("opcode_graphs.pkl", "rb") as f:
+with open("opcode_graphs_optimized.pkl", "rb") as f:
     adj_matrices = pickle.load(f)
 
 with open("improved_cig_output.pkl", "rb") as f:
@@ -62,8 +68,8 @@ nx.draw_networkx_edge_labels(G_full, pos, edge_labels=edge_labels, font_size=6)
 plt.title(f"Opcode Transition Graph (Full) - Sample {sample_index}")
 plt.axis('off')
 plt.tight_layout()
-plt.savefig(f"opcode_graph_full_sample_{sample_index}.png", dpi=300)
-print(f"Saved full graph as 'opcode_graph_full_sample_{sample_index}.png'")
+plt.savefig(os.path.join(RESULTS_DIR, f"opcode_graph_full_sample_{sample_index}.png"), dpi=300)
+print(f"Saved full graph to: {RESULTS_DIR}/opcode_graph_full_sample_{sample_index}.png")
 
 # === PRUNED GRAPH (only connected nodes) ===
 connected_nodes = set()
@@ -85,5 +91,5 @@ nx.draw_networkx_edge_labels(G_pruned, pos, edge_labels=edge_labels, font_size=6
 plt.title(f"Opcode Transition Graph (Connected Only) - Sample {sample_index}")
 plt.axis('off')
 plt.tight_layout()
-plt.savefig(f"opcode_graph_pruned_sample_{sample_index}.png", dpi=300)
-print(f"Saved pruned graph as 'opcode_graph_pruned_sample_{sample_index}.png'")
+plt.savefig(os.path.join(RESULTS_DIR, f"opcode_graph_pruned_sample_{sample_index}.png"), dpi=300)
+print(f"Saved pruned graph to: {RESULTS_DIR}/opcode_graph_pruned_sample_{sample_index}.png")

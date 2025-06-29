@@ -11,10 +11,16 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pickle
+import os
 
 from scipy.linalg import eigh # for symmetric matrices
 from sklearn.decomposition import PCA
 from alive_progress import alive_bar
+
+# Create results directory
+RESULTS_DIR = "Eigenspace Results"
+os.makedirs(RESULTS_DIR, exist_ok=True)
+print(f"Eigenspace results will be saved to: {RESULTS_DIR}/")
 
 # eigenspace transformation function
 def eigenspace_embedding(adj_matrices, k=12):
@@ -51,6 +57,56 @@ def eigenspace_embedding(adj_matrices, k=12):
         
     return np.array(embedded_vectors)
 
+def visualize_embeddings_with_labels(X, labels):
+    print("\n==Visualizing Eigenspace Embeddings with Class Labels==")
+    pca = PCA(n_components=2)
+    X_reduced = pca.fit_transform(X)
+
+    plt.figure(figsize=(12, 5))
+    
+    # Plot 1: All samples (original)
+    plt.subplot(1, 2, 1)
+    plt.scatter(X_reduced[:, 0], X_reduced[:, 1], s=15, alpha=0.7, color='blue')
+    plt.title("All Samples")
+    plt.xlabel("Structural Variation in Opcode Flow")
+    plt.ylabel("Secondary Behavioral Pattern")
+    plt.grid(True)
+    
+    # Plot 2: Colored by class
+    plt.subplot(1, 2, 2)
+    benign_mask = np.array(labels) == 0
+    malware_mask = np.array(labels) == 1
+    
+    plt.scatter(X_reduced[benign_mask, 0], X_reduced[benign_mask, 1], 
+               s=15, alpha=0.7, color='green', label=f'Benign ({benign_mask.sum()})')
+    plt.scatter(X_reduced[malware_mask, 0], X_reduced[malware_mask, 1], 
+               s=15, alpha=0.7, color='red', label=f'Malware ({malware_mask.sum()})')
+    
+    plt.title("Malware vs Benign Classification")
+    plt.xlabel("Structural Variation in Opcode Flow")
+    plt.ylabel("Secondary Behavioral Pattern")
+    plt.legend()
+    plt.grid(True)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(RESULTS_DIR, "eigenspace_embeddings_labeled.png"), dpi=300)
+    print("Saved labeled visualization to 'Eigenspace Results/eigenspace_embeddings_labeled.png'\n")
+    
+    # Print separation statistics
+    print("=== Cluster Analysis ===")
+    print(f"Total samples: {len(labels)}")
+    print(f"Benign: {benign_mask.sum()} ({benign_mask.sum()/len(labels)*100:.1f}%)")
+    print(f"Malware: {malware_mask.sum()} ({malware_mask.sum()/len(labels)*100:.1f}%)")
+    
+    # Calculate basic separation metrics
+    benign_centroid = X_reduced[benign_mask].mean(axis=0)
+    malware_centroid = X_reduced[malware_mask].mean(axis=0)
+    separation_distance = np.linalg.norm(benign_centroid - malware_centroid)
+    
+    print(f"Benign centroid: ({benign_centroid[0]:.3f}, {benign_centroid[1]:.3f})")
+    print(f"Malware centroid: ({malware_centroid[0]:.3f}, {malware_centroid[1]:.3f})")
+    print(f"Centroid separation distance: {separation_distance:.3f}")
+
 def visualize_embeddings(X):
     print("\n==Visualizing Eigenspace Embeddings==")
     pca = PCA(n_components=2)  # or use TSNE for nonlinear projection
@@ -65,13 +121,18 @@ def visualize_embeddings(X):
     plt.tight_layout()
 
     # Save instead of showing
-    plt.savefig("eigenspace_embeddings.png", dpi=300)
-    print("Saved PCA visualization to 'eigenspace_embeddings.png'\n")
+    plt.savefig(os.path.join(RESULTS_DIR, "eigenspace_embeddings.png"), dpi=300)
+    print("Saved PCA visualization to 'Eigenspace Results/eigenspace_embeddings.png'\n")
 
 def main():
-    # load data --> get adj_matrices
-    with open("opcode_graphs.pkl", "rb") as f:
+    # load data --> get adj_matrices and labels
+    with open("opcode_graphs_optimized.pkl", "rb") as f:
         adj_matrices = pickle.load(f)
+    
+    # load labels for visualization
+    with open("improved_cig_output.pkl", "rb") as f:
+        data = pickle.load(f)
+        labels = data["labels"]
 
     # compute embeddings
     X_graph = eigenspace_embedding(adj_matrices, k=12)
@@ -83,7 +144,14 @@ def main():
 
     print("\nSaved eigenspace embeddings to 'X_graph_embeddings.pkl'")
 
+    # Create both visualizations
     visualize_embeddings(X_graph)
+    visualize_embeddings_with_labels(X_graph, labels)
+
+    # For class-aware visualization, assuming labels are available in the data
+    # Here, we just create dummy labels for demonstration (0 for benign, 1 for malware)
+    dummy_labels = np.array([0] * (len(adj_matrices) // 2) + [1] * (len(adj_matrices) - len(adj_matrices) // 2))
+    visualize_embeddings_with_labels(X_graph, dummy_labels)
 
 if __name__ == "__main__":
     main()
