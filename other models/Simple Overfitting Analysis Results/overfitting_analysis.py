@@ -23,7 +23,7 @@ import os
 from collections import Counter
 
 # Create results directory
-RESULTS_DIR = "Overfitting Analysis Results"
+RESULTS_DIR = "Simple Overfitting Analysis Results"
 os.makedirs(RESULTS_DIR, exist_ok=True)
 print(f"Analysis results will be saved to: {RESULTS_DIR}/")
 
