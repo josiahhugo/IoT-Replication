@@ -201,11 +201,7 @@ def run_10fold_cv():
     print(f"Loaded {len(X_embeddings)} samples with {X_embeddings.shape[1]} features each")
     print(f"Class distribution: Benign={labels.count(0)}, Malware={labels.count(1)}")
     
-    # Normalize features
-    scaler = StandardScaler()
-    X_embeddings = scaler.fit_transform(X_embeddings)
-    
-    # Convert to numpy arrays for indexing
+    # Convert to numpy arrays for indexing (DON'T normalize yet - do it per fold)
     X_embeddings = np.array(X_embeddings)
     labels = np.array(labels)
     
@@ -228,14 +224,20 @@ def run_10fold_cv():
         # Split train_val into train and validation (80/20 split of the 90% train_val data)
         from sklearn.model_selection import train_test_split
         train_indices, val_indices = train_test_split(
-            train_val_indices, test_size=0.2, random_state=42, 
+            train_val_indices, test_size=0.2, random_state=fold + 100,  # Different seed per fold
             stratify=labels[train_val_indices]
         )
         
-        # Create datasets
-        train_dataset = EigenspaceDataset(X_embeddings, labels, train_indices)
-        val_dataset = EigenspaceDataset(X_embeddings, labels, val_indices)
-        test_dataset = EigenspaceDataset(X_embeddings, labels, test_indices)
+        # FIXED: Normalize features per fold to prevent data leakage
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_embeddings[train_indices])
+        X_val_scaled = scaler.transform(X_embeddings[val_indices])
+        X_test_scaled = scaler.transform(X_embeddings[test_indices])
+        
+        # Create datasets with properly normalized features
+        train_dataset = EigenspaceDataset(X_train_scaled, labels[train_indices])
+        val_dataset = EigenspaceDataset(X_val_scaled, labels[val_indices])
+        test_dataset = EigenspaceDataset(X_test_scaled, labels[test_indices])
         
         # Create data loaders
         train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
