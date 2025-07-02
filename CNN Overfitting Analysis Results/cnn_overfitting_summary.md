@@ -12,27 +12,27 @@ Analysis of CNN 10-fold cross-validation results to assess overfitting and actua
 ## Key Findings
 
 ### Test Accuracy
-- **Mean**: 0.9992 ± 0.0025
+- **Mean**: 0.9975 ± 0.0038
 - **Range**: 0.9917 - 1.0000
-- **CV**: 0.25%
+- **CV**: 0.38%
 
 ### Malware Recall (Critical Metric)
-- **Mean**: 0.9917 ± 0.0250
+- **Mean**: 0.9867 ± 0.0277
 - **Range**: 0.9167 - 1.0000
-- **CV**: 2.52%
+- **CV**: 2.81%
 
 ## Overfitting Assessment
 
 ### Train-Validation Gap Analysis
-- **Average gap**: 0.0008 ± 0.0025
+- **Average gap**: 0.0025 ± 0.0038
 - **Maximum gap**: 0.0083
-- **Individual gaps**: ['0.000', '0.000', '0.000', '0.000', '0.000', '0.000', '0.008', '0.000', '0.000', '0.000']
+- **Individual gaps**: ['0.008', '0.000', '0.000', '0.000', '0.000', '0.000', '0.008', '0.000', '0.000', '0.008']
 
 - **Assessment**: ✅ NO overfitting detected
 
 ## Final Assessment
 
-**CNN Performance**: 99.9% accuracy, 99.2% malware recall
+**CNN Performance**: 99.8% accuracy, 98.7% malware recall
 
 **Verdict**: ✅ **EXCELLENT PERFORMANCE**
 - High accuracy with excellent malware detection
