@@ -20,7 +20,7 @@ print(f"Results will be saved to: {RESULTS_DIR}/")
 def load_cnn_results():
     """Load CNN 10-fold CV results"""
     try:
-        with open('10-Fold CV Results/cv_results.pkl', 'rb') as f:
+        with open('Clean_CNN_Fixed_Results/fixed_cnn_results.pkl', 'rb') as f:
             results = pickle.load(f)
         
         print("✅ Loaded CNN 10-fold CV results")

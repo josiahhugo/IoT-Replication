@@ -88,7 +88,7 @@ def analyze_cnn_10fold_detailed():
     
     # Try to load the 10-fold results
     results_files = [
-        '10-Fold CV Results/cv_results.pkl',
+        'Clean_CNN_Fixed_Results/fixed_cnn_results.pkl',
         'Archived/10-Fold CV Results/cv_results.pkl',
         'cnn_10fold_results.pkl'
     ]
