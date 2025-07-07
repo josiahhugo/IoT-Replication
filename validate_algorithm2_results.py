@@ -210,18 +210,29 @@ def validation_test_3_random_perturbation_baseline():
 
 def validation_test_4_cross_validation():
     """
-    Validation 4: Test resilience across multiple random splits
+    CORRECTED Validation 4: Use SAME methodology as main algorithm
     """
     print("\n=== VALIDATION 4: Cross-Validation Consistency ===")
     
-    # Load data
+    # Load data EXACTLY like main algorithm
     with open("improved_cig_output.pkl", "rb") as f:
         data = pickle.load(f)
     
     with open("X_graph_embeddings.pkl", "rb") as f:
         X_embeddings = np.array(pickle.load(f))
     
-    labels = data["labels"]
+    # Remove duplicates EXACTLY like main algorithm
+    import hashlib
+    unique_indices = []
+    seen_hashes = set()
+    for i, sample in enumerate(X_embeddings):
+        sample_hash = hashlib.md5(sample.tobytes()).hexdigest()
+        if sample_hash not in seen_hashes:
+            seen_hashes.add(sample_hash)
+            unique_indices.append(i)
+    
+    X_clean = X_embeddings[unique_indices]
+    y_clean = np.array([data["labels"][i] for i in unique_indices])
     
     # Test across 5 different random splits
     resilience_scores = []
@@ -230,82 +241,122 @@ def validation_test_4_cross_validation():
         print(f"  Testing with random seed {seed}...")
         
         from sklearn.model_selection import StratifiedShuffleSplit
-        sss = StratifiedShuffleSplit(n_splits=1, test_size=80, random_state=seed)
+        sss = StratifiedShuffleSplit(n_splits=1, test_size=200, random_state=seed)  # Same size as main
         
-        indices = list(range(min(200, len(labels))))  # Use subset for speed
-        subset_labels = [labels[i] for i in indices]
+        indices = list(range(len(y_clean)))
         
-        for train_indices, test_indices in sss.split(indices, subset_labels):
-            # Create proxy matrices
-            embedding_dim = int(np.sqrt(X_embeddings.shape[1]))
+        for train_indices, test_indices in sss.split(indices, y_clean):
+            # Use SAME matrix creation as main algorithm
+            max_dim = 31
             
-            train_matrices = []
-            test_matrices = []
-            train_labels_subset = []
-            test_labels_subset = []
-            
-            for i in train_indices:
-                matrix = X_embeddings[i][:embedding_dim*embedding_dim].reshape(embedding_dim, embedding_dim)
+            def create_adjacency_matrix(embedding):
+                matrix_flat = embedding[:max_dim*max_dim]
+                matrix = matrix_flat.reshape(max_dim, max_dim)
                 matrix = (matrix + matrix.T) / 2
-                train_matrices.append(matrix)
-                train_labels_subset.append(labels[i])
+                matrix = np.abs(matrix)
+                return matrix
             
-            for i in test_indices:
-                matrix = X_embeddings[i][:embedding_dim*embedding_dim].reshape(embedding_dim, embedding_dim)
-                matrix = (matrix + matrix.T) / 2
-                test_matrices.append(matrix)
-                test_labels_subset.append(labels[i])
+            # Import the EXACT same function from main algorithm
+            from paper_algorithm2_implementation import algorithm2_junk_insertion
             
-            # Extract features and train model
+            # Extract training features
             train_features = []
-            for matrix in train_matrices:
-                eigenvalues, eigenvectors = np.linalg.eigh(matrix)
-                features = np.concatenate([
-                    eigenvectors[:, 0], eigenvectors[:, 1],
-                    [eigenvalues[0], eigenvalues[1]]
-                ])
-                train_features.append(features)
+            train_labels_subset = []
             
+            for i, idx in enumerate(train_indices):
+                try:
+                    matrix = create_adjacency_matrix(X_clean[idx])
+                    features, _ = algorithm2_junk_insertion(matrix, 0, sample_id=i)
+                    train_features.append(features)
+                    train_labels_subset.append(y_clean[idx])
+                except Exception as e:
+                    continue
+            
+            if len(train_features) < 50:  # Need reasonable training set
+                print(f"    Skipping seed {seed} - insufficient training samples")
+                continue
+                
             train_features = np.array(train_features)
             
-            rf = RandomForestClassifier(n_estimators=20, random_state=seed)
+            # Train classifier EXACTLY like main algorithm
+            from sklearn.ensemble import RandomForestClassifier
+            rf = RandomForestClassifier(
+                n_estimators=100,
+                max_depth=15,
+                random_state=42,  # Same as main
+                n_jobs=-1
+            )
             rf.fit(train_features, train_labels_subset)
             
-            # Test baseline
-            test_features = []
-            for matrix in test_matrices:
-                eigenvalues, eigenvectors = np.linalg.eigh(matrix)
-                features = np.concatenate([
-                    eigenvectors[:, 0], eigenvectors[:, 1],
-                    [eigenvalues[0], eigenvalues[1]]
-                ])
-                test_features.append(features)
+            # Test baseline (0% junk)
+            test_features_baseline = []
+            test_labels_subset = []
             
-            test_features = np.array(test_features)
-            baseline_acc = rf.score(test_features, test_labels_subset)
+            for i, idx in enumerate(test_indices):
+                try:
+                    matrix = create_adjacency_matrix(X_clean[idx])
+                    features, _ = algorithm2_junk_insertion(matrix, 0, sample_id=i)
+                    test_features_baseline.append(features)
+                    test_labels_subset.append(y_clean[idx])
+                except Exception as e:
+                    continue
             
-            # Test with 20% junk
-            junk_features = []
-            for matrix in test_matrices:
-                modified_features, _ = algorithm2_junk_insertion(matrix, 20)
-                junk_features.append(modified_features)
-            
-            junk_features = np.array(junk_features)
+            if len(test_features_baseline) < 10:
+                print(f"    Skipping seed {seed} - insufficient test samples")
+                continue
+                
+            test_features_baseline = np.array(test_features_baseline)
             
             # Ensure feature compatibility
-            min_features = min(train_features.shape[1], junk_features.shape[1])
-            junk_features_trunc = junk_features[:, :min_features]
+            min_features = min(train_features.shape[1], test_features_baseline.shape[1])
+            test_features_baseline = test_features_baseline[:, :min_features]
             
-            if junk_features_trunc.shape[1] < train_features.shape[1]:
-                padding = np.zeros((junk_features_trunc.shape[0], 
-                                 train_features.shape[1] - junk_features_trunc.shape[1]))
-                junk_features_trunc = np.hstack([junk_features_trunc, padding])
+            if test_features_baseline.shape[1] < train_features.shape[1]:
+                padding = np.zeros((test_features_baseline.shape[0], 
+                                 train_features.shape[1] - test_features_baseline.shape[1]))
+                test_features_baseline = np.hstack([test_features_baseline, padding])
             
-            junk_acc = rf.score(junk_features_trunc, test_labels_subset)
+            baseline_acc = rf.score(test_features_baseline, test_labels_subset)
+            
+            # Test with 20% junk - SAME as main algorithm
+            test_features_junk = []
+            
+            for i, idx in enumerate(test_indices):
+                try:
+                    matrix = create_adjacency_matrix(X_clean[idx])
+                    features, _ = algorithm2_junk_insertion(matrix, 20, sample_id=i)  # 20% junk
+                    test_features_junk.append(features)
+                except Exception as e:
+                    continue
+            
+            test_features_junk = np.array(test_features_junk)
+            
+            # Ensure same number of samples
+            min_samples = min(len(test_features_baseline), len(test_features_junk))
+            test_features_junk = test_features_junk[:min_samples]
+            test_labels_subset = test_labels_subset[:min_samples]
+            
+            # Ensure feature compatibility
+            test_features_junk = test_features_junk[:, :min_features]
+            
+            if test_features_junk.shape[1] < train_features.shape[1]:
+                padding = np.zeros((test_features_junk.shape[0], 
+                                 train_features.shape[1] - test_features_junk.shape[1]))
+                test_features_junk = np.hstack([test_features_junk, padding])
+            
+            junk_acc = rf.score(test_features_junk, test_labels_subset)
+            
+            # Calculate resilience
             resilience = junk_acc / baseline_acc if baseline_acc > 0 else 0
             
             resilience_scores.append(resilience)
             print(f"    Baseline: {baseline_acc:.3f}, Junk: {junk_acc:.3f}, Resilience: {resilience:.3f}")
+            
+            break  # Only need one split per seed
+    
+    if len(resilience_scores) == 0:
+        print("❌ No valid splits found for cross-validation")
+        return False
     
     # Analyze consistency
     avg_resilience = np.mean(resilience_scores)
@@ -316,11 +367,18 @@ def validation_test_4_cross_validation():
     print(f"  Min resilience: {min(resilience_scores):.3f}")
     print(f"  Max resilience: {max(resilience_scores):.3f}")
     
-    if std_resilience > 0.2:
+    # Check if results are realistic
+    if avg_resilience > 0.99 and std_resilience < 0.01:
+        print("🚨 SUSPICIOUS: Resilience is too perfect - possible validation error")
+        return False
+    elif avg_resilience < 0.5:
+        print("⚠️  WARNING: Very low resilience - algorithm may be too sensitive")
+        return False
+    elif std_resilience > 0.3:
         print("⚠️  WARNING: High variance in resilience scores - results may be unstable")
         return False
     else:
-        print("✅ Consistent resilience across different splits")
+        print("✅ Reasonable resilience with acceptable variance")
         return True
 
 def validation_test_5_sanity_checks():

@@ -2,28 +2,28 @@ CNN 10-Fold Cross-Validation Detailed Analysis
 ==================================================
 
 Dataset Information:
-  Total samples: 1207
-  Benign: 1079 (89.4%)
-  Malware: 128 (10.6%)
+  Total samples: 1136
+  Benign: 1059 (93.2%)
+  Malware: 77 (6.8%)
 
 Confusion Matrix:
-  True Negatives (TN):  1078
-  False Positives (FP):    1
-  False Negatives (FN):    2
-  True Positives (TP):   126
+  True Negatives (TN):  1056
+  False Positives (FP):    3
+  False Negatives (FN):    1
+  True Positives (TP):    76
 
 Per-Class Metrics:
   Benign Class:
-    Precision: 0.9981
-    Recall:    0.9991
-    F1-Score:  0.9986
+    Precision: 0.9991
+    Recall:    0.9972
+    F1-Score:  0.9981
   Malware Class:
-    Precision: 0.9921
-    Recall:    0.9844
-    F1-Score:  0.9882
+    Precision: 0.9620
+    Recall:    0.9870
+    F1-Score:  0.9744
 
 Overall Metrics:
-  Accuracy:  0.9975
-  Precision: 0.9975
-  Recall:    0.9975
-  F1-Score:  0.9975
+  Accuracy:  0.9965
+  Precision: 0.9965
+  Recall:    0.9965
+  F1-Score:  0.9965
