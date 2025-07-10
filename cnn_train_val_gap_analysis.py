@@ -42,47 +42,55 @@ class EigenspaceDataset(Dataset):
     def __getitem__(self, idx):
         return self.embeddings[idx], self.labels[idx]
 
-class DeepEigenspaceCNN(nn.Module):
-    """CNN for Deep Eigenspace Learning"""
-    def __init__(self, input_dim=984, num_classes=2, dropout_rate=0.5):
-        super(DeepEigenspaceCNN, self).__init__()
+class ImprovedCNN(nn.Module):
+    def __init__(self, input_dim=164):  # Changed from 984 to 164
+        super(ImprovedCNN, self).__init__()
         
-        self.reshape_dim = (12, 82)
+        # Calculate reshape dimensions for k=2
+        self.k = 2  # Number of eigenvectors
+        self.matrix_size = 82  # Original adjacency matrix size
+        self.reshape_dim = [self.k, self.matrix_size]  # [2, 82]
         
-        # Convolutional layers
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=(3, 3), padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=(3, 3), padding=1)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=(3, 3), padding=1)
+        # Verify input dimension matches
+        expected_input = self.k * self.matrix_size
+        assert input_dim == expected_input, f"Input dim {input_dim} != expected {expected_input}"
         
-        # Batch normalization
-        self.bn1 = nn.BatchNorm2d(32)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.bn3 = nn.BatchNorm2d(128)
+        # CNN layers adapted for 2×82 input
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
         
-        # Pooling
         self.pool = nn.MaxPool2d(2, 2)
-        self.adaptive_pool = nn.AdaptiveAvgPool2d((4, 4))
+        self.dropout = nn.Dropout(0.5)
         
-        # Fully connected layers
-        self.fc1 = nn.Linear(128 * 4 * 4, 512)
-        self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, 128)
-        self.fc4 = nn.Linear(128, num_classes)
+        # Calculate flattened size after convolutions
+        # After conv+pool layers with input [2, 82]:
+        # No pooling on first dimension (too small)
+        # Pool only on second dimension: 82 → 41 → 20 → 10
+        self.flattened_size = 128 * 2 * 10  # 128 channels × 2 height × 10 width
         
-        # Dropout for regularization
-        self.dropout = nn.Dropout(dropout_rate)
+        self.fc1 = nn.Linear(self.flattened_size, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 1)
         
     def forward(self, x):
         batch_size = x.size(0)
+        
+        # Reshape to 2D "image": [batch, 1, 2, 82]
         x = x.view(batch_size, 1, self.reshape_dim[0], self.reshape_dim[1])
         
-        # Convolutional layers
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = self.pool(x)
+        # CNN layers with careful pooling
+        x = F.relu(self.conv1(x))
+        # Only pool in width dimension (82→41)
+        x = F.max_pool2d(x, kernel_size=(1, 2))
         
-        x = F.relu(self.bn3(self.conv3(x)))
-        x = self.adaptive_pool(x)
+        x = F.relu(self.conv2(x))
+        # Pool in width again (41→20)
+        x = F.max_pool2d(x, kernel_size=(1, 2))
+        
+        x = F.relu(self.conv3(x))
+        # Final pool (20→10)
+        x = F.max_pool2d(x, kernel_size=(1, 2))
         
         # Flatten and fully connected layers
         x = x.view(batch_size, -1)
@@ -90,9 +98,7 @@ class DeepEigenspaceCNN(nn.Module):
         x = self.dropout(x)
         x = F.relu(self.fc2(x))
         x = self.dropout(x)
-        x = F.relu(self.fc3(x))
-        x = self.dropout(x)
-        x = self.fc4(x)
+        x = torch.sigmoid(self.fc3(x))
         
         return x
 
@@ -112,7 +118,9 @@ def evaluate_model(model, data_loader):
         for embeddings, labels in data_loader:
             embeddings, labels = embeddings.to(device), labels.to(device)
             outputs = model(embeddings)
-            _, predicted = torch.max(outputs, 1)
+            
+            # 🔧 CHANGE: Convert sigmoid output to predictions
+            predicted = (outputs.squeeze() > 0.5).long()  # Threshold at 0.5
             
             all_predictions.extend(predicted.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
@@ -146,7 +154,8 @@ def evaluate_model(model, data_loader):
 
 def train_with_tracking(model, train_loader, val_loader, test_loader, num_epochs=30):
     """Train model with detailed tracking of train/val performance"""
-    criterion = nn.CrossEntropyLoss()
+    # 🔧 CHANGE: Use BCELoss for sigmoid output
+    criterion = nn.BCELoss()  # Binary Cross Entropy for sigmoid output
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.5)
     
@@ -175,7 +184,11 @@ def train_with_tracking(model, train_loader, val_loader, test_loader, num_epochs
             
             optimizer.zero_grad()
             outputs = model(embeddings)
-            loss = criterion(outputs, labels)
+            
+            # 🔧 CHANGE: Convert labels to float for BCELoss
+            labels_float = labels.float().unsqueeze(1)  # Shape: [batch, 1]
+            loss = criterion(outputs, labels_float)
+            
             loss.backward()
             optimizer.step()
             
@@ -226,30 +239,55 @@ def analyze_train_val_gap():
     # Load data
     print("Loading eigenspace embeddings...")
     with open("X_graph_embeddings.pkl", "rb") as f:
-        X_embeddings = pickle.load(f)
+        X = pickle.load(f)
     
     with open("improved_cig_output.pkl", "rb") as f:
         data = pickle.load(f)
-        labels = data["labels"]
+        y = data["labels"]
     
-    print(f"Loaded {len(X_embeddings)} samples with {X_embeddings.shape[1]} features each")
-    print(f"Class distribution: Benign={labels.count(0)}, Malware={labels.count(1)}")
-    print(f"Class imbalance: {labels.count(0)/labels.count(1):.1f}:1 (benign:malware)")
+    # 🔧 CONVERT LIST TO NUMPY ARRAY FIRST
+    y = np.array(y)  # Convert list to numpy array
+    X = np.array(X)  # Ensure X is also numpy array
+    
+    print(f"Loaded {len(X)} samples with {X.shape[1]} features each")
+    print(f"Class distribution: Benign={np.sum(y==0)}, Malware={np.sum(y==1)}")
+    print(f"Class imbalance: {np.sum(y==0)/np.sum(y==1):.1f}:1 (benign:malware)")
+    
+    # 🔧 ADD LABEL VALIDATION AND CLEANING
+    print(f"Original labels shape: {y.shape}")
+    print(f"Label value range: {y.min()} to {y.max()}")
+    print(f"Unique label values: {np.unique(y)}")
+    
+    # Ensure labels are in [0, 1] range
+    if y.min() < 0 or y.max() > 1:
+        print("⚠️ Labels outside [0,1] range - fixing...")
+        y = np.clip(y, 0, 1)  # Clip to [0,1]
+        
+    # Ensure labels are integers
+    y = y.astype(np.int64)
+    
+    # Verify binary classification
+    unique_labels = np.unique(y)
+    assert len(unique_labels) <= 2, f"Too many classes: {unique_labels}"
+    assert all(label in [0, 1] for label in unique_labels), f"Invalid labels: {unique_labels}"
+    
+    print(f"✅ Cleaned labels: shape={y.shape}, range=[{y.min()}, {y.max()}]")
+    print(f"✅ Class distribution: {np.bincount(y)}")
     
     # Normalize features
     scaler = StandardScaler()
-    X_embeddings = scaler.fit_transform(X_embeddings)
+    X = scaler.fit_transform(X)
     
     # Convert to numpy arrays
-    X_embeddings = np.array(X_embeddings)
-    labels = np.array(labels)
+    X = np.array(X)
+    y = np.array(y)
     
     # Single train/val/test split for detailed analysis
     print(f"\n=== Single Split Analysis (for detailed overfitting assessment) ===")
     
     # Split data: 70% train, 15% val, 15% test
     X_temp, X_test, y_temp, y_test = train_test_split(
-        X_embeddings, labels, test_size=0.15, random_state=42, stratify=labels
+        X, y, test_size=0.15, random_state=42, stratify=y
     )
     
     X_train, X_val, y_train, y_val = train_test_split(
@@ -270,7 +308,7 @@ def analyze_train_val_gap():
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
     
     # Create and train model
-    model = DeepEigenspaceCNN(input_dim=984, num_classes=2)
+    model = ImprovedCNN(input_dim=164).to(device)
     
     print(f"\n=== Training with Detailed Tracking ===")
     model, history = train_with_tracking(model, train_loader, val_loader, test_loader, num_epochs=30)

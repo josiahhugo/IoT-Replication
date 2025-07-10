@@ -7,23 +7,23 @@ Dataset Information:
   Malware: 77 (6.8%)
 
 Confusion Matrix:
-  True Negatives (TN):  1056
-  False Positives (FP):    3
-  False Negatives (FN):    1
-  True Positives (TP):    76
+  True Negatives (TN):  1055
+  False Positives (FP):    4
+  False Negatives (FN):    0
+  True Positives (TP):    77
 
 Per-Class Metrics:
   Benign Class:
-    Precision: 0.9991
-    Recall:    0.9972
+    Precision: 1.0000
+    Recall:    0.9962
     F1-Score:  0.9981
   Malware Class:
-    Precision: 0.9620
-    Recall:    0.9870
-    F1-Score:  0.9744
+    Precision: 0.9506
+    Recall:    1.0000
+    F1-Score:  0.9747
 
 Overall Metrics:
   Accuracy:  0.9965
-  Precision: 0.9965
+  Precision: 0.9967
   Recall:    0.9965
   F1-Score:  0.9965

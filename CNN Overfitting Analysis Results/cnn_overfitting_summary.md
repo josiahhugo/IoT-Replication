@@ -17,9 +17,9 @@ Analysis of CNN 10-fold cross-validation results to assess overfitting and actua
 - **CV**: 0.59%
 
 ### Malware Recall (Critical Metric)
-- **Mean**: 0.9857 ± 0.0429
-- **Range**: 0.8571 - 1.0000
-- **CV**: 4.35%
+- **Mean**: 1.0000 ± 0.0000
+- **Range**: 1.0000 - 1.0000
+- **CV**: 0.00%
 
 ## Overfitting Assessment
 
@@ -32,7 +32,7 @@ Analysis of CNN 10-fold cross-validation results to assess overfitting and actua
 
 ## Final Assessment
 
-**CNN Performance**: 99.6% accuracy, 98.6% malware recall
+**CNN Performance**: 99.6% accuracy, 100.0% malware recall
 
 **Verdict**: ✅ **EXCELLENT PERFORMANCE**
 - High accuracy with excellent malware detection

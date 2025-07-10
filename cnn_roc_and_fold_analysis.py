@@ -65,6 +65,12 @@ def load_and_clean_data():
         print(f"     Benign: {class_counts.get(0.0, 0)} ({class_counts.get(0.0, 0)/len(y_clean):.1%})")
         print(f"     Malware: {class_counts.get(1.0, 0)} ({class_counts.get(1.0, 0)/len(y_clean):.1%})")
         
+        # REMOVE NEAR DUPLICATES - NEW STEP
+        print("🚫 Removing near-duplicates (similarity > 0.999)...")
+        X_clean, y_clean = remove_near_duplicates(X_clean, y_clean, threshold=0.999)
+        
+        print(f"   Clean samples after near-duplicate removal: {len(X_clean)}")
+        
         return X_clean, y_clean, duplicate_count
         
     except Exception as e:
@@ -780,6 +786,25 @@ def create_comprehensive_validation_report(integrity_status, leakage_status, mem
     print(f"✅ Saved comprehensive validation report to: {report_path}")
     
     return critical_issues == 0
+
+def remove_near_duplicates(X, y, threshold=0.999):
+    """Remove samples that are too similar"""
+    from sklearn.metrics.pairwise import cosine_similarity
+    
+    to_remove = set()
+    similarity_matrix = cosine_similarity(X)
+    
+    for i in range(len(X)):
+        for j in range(i+1, len(X)):
+            if similarity_matrix[i, j] > threshold:
+                # Keep the sample with more common label
+                if Counter(y)[y[i]] > Counter(y)[y[j]]:
+                    to_remove.add(j)
+                else:
+                    to_remove.add(i)
+    
+    keep_indices = [i for i in range(len(X)) if i not in to_remove]
+    return X[keep_indices], y[keep_indices]
 
 def main():
     """Main validation function for cleaned CNN results"""
