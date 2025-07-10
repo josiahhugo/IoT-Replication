@@ -1,9 +1,7 @@
 '''
 1) compute top k eigenvalues and eigenvectors
 2) Flatten top-k eigenvectors into a single vector
-3) Vector becomes the feaeture representation of that sample for training a classifier
-
-paper uses k = 12
+3) Vector becomes the feature representation of that sample for training a classifier
 
 '''
 import numpy as np
@@ -23,10 +21,12 @@ os.makedirs(RESULTS_DIR, exist_ok=True)
 print(f"Eigenspace results will be saved to: {RESULTS_DIR}/")
 
 # eigenspace transformation function
-def eigenspace_embedding(adj_matrices, k=12):
+def eigenspace_embedding(adj_matrices, k=2):  # Changed from k=12 to k=2
     embedded_vectors = []
 
-    print("\n==Computing Eigenspace Embeddings==")
+    print(f"\n==Computing Eigenspace Embeddings (k={k})==")
+    print(f"Following paper methodology: Using top {k} eigenvectors")
+    
     with alive_bar(len(adj_matrices), title="Embedding graphs") as bar:
         for i, A in enumerate(adj_matrices):
             # ensure A is symmetric for stable eigendecomposition
@@ -39,16 +39,23 @@ def eigenspace_embedding(adj_matrices, k=12):
             idx = np.argsort(eigenvalues)[::-1]
             top_k_vectors = eigenvectors[:, idx[:k]]
 
-            # === Print or inspect top 2 eigenvalues and eigenvectors (for first sample only) ===
+            # === Print details for first sample only ===
             if i == 0:
-                print(f"A_sym[0] (first 5 rows):\n{A_sym[:5, :5]}")
-                print(f"Sum of A_sym: {np.sum(A_sym)}")
+                print(f"\nFirst sample analysis:")
+                print(f"   Matrix shape: {A_sym.shape}")
+                print(f"   Matrix sum: {np.sum(A_sym):.3f}")
                 
-                top_2_values = eigenvalues[idx[:2]]
-                top_2_vectors = eigenvectors[:, idx[:2]]
-
-                print(f"\nSample eigenvalues (top 2): {top_2_values}")
-                print(f"Top 2 eigenvectors (shape {top_2_vectors.shape}):\n{top_2_vectors}")
+                top_k_values = eigenvalues[idx[:k]]
+                
+                print(f"   Top {k} eigenvalues: {top_k_values}")
+                print(f"   Top {k} eigenvectors shape: {top_k_vectors.shape}")
+                print(f"   Feature vector dimension: {top_k_vectors.size} (matrix_size × k = {A.shape[0]} × {k})")
+                
+                # Show eigenvalue dominance
+                total_eigenvalue_sum = np.sum(np.abs(eigenvalues))
+                top_k_sum = np.sum(np.abs(top_k_values))
+                dominance_ratio = top_k_sum / total_eigenvalue_sum * 100
+                print(f"   Top {k} eigenvalues capture {dominance_ratio:.1f}% of spectral energy")
 
             # flatten to 1D vector
             embedding = top_k_vectors.flatten()
@@ -134,24 +141,31 @@ def main():
         data = pickle.load(f)
         labels = data["labels"]
 
-    # compute embeddings
-    X_graph = eigenspace_embedding(adj_matrices, k=12)
-    print(f"Eigenspace embeddings shape: {X_graph.shape}") # each sample is now a 984-dimensional vector ready to train a classifier
-
+    # compute embeddings with k=2 as per paper
+    X_graph = eigenspace_embedding(adj_matrices, k=2)  # Changed to k=2
+    
+    # Calculate actual feature dimensions
+    matrix_size = adj_matrices[0].shape[0]
+    expected_dims = matrix_size * 2
+    actual_dims = X_graph.shape[1]
+    
+    print(f"\nEigenspace embeddings computed:")
+    print(f"   Shape: {X_graph.shape}")
+    print(f"   Expected dimensions: {expected_dims} (matrix_size {matrix_size} × k=2)")
+    print(f"   Actual dimensions: {actual_dims}")
+    print(f"   ✅ Dimensions match: {expected_dims == actual_dims}")
+    
     # save embeddings
     with open("X_graph_embeddings.pkl", "wb") as f:
         pickle.dump(X_graph, f)
 
-    print("\nSaved eigenspace embeddings to 'X_graph_embeddings.pkl'")
+    print(f"\n✅ Saved eigenspace embeddings to 'X_graph_embeddings.pkl'")
+    print(f"   Each sample represented by {actual_dims}-dimensional vector")
+    print(f"   Following paper methodology: k=2 eigenvectors")
 
-    # Create both visualizations
+    # Create visualizations
     visualize_embeddings(X_graph)
     visualize_embeddings_with_labels(X_graph, labels)
-
-    # For class-aware visualization, assuming labels are available in the data
-    # Here, we just create dummy labels for demonstration (0 for benign, 1 for malware)
-    dummy_labels = np.array([0] * (len(adj_matrices) // 2) + [1] * (len(adj_matrices) - len(adj_matrices) // 2))
-    visualize_embeddings_with_labels(X_graph, dummy_labels)
 
 if __name__ == "__main__":
     main()

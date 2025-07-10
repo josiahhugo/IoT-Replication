@@ -2,16 +2,16 @@
 /.venv
 /__pycache__/
 
-# Dataset & Paper being replicated
-/IoTMalwareDetection-master
-/14 Robust_Malware_Detection_for_Internet_of_Battlefield_Things_Devices_Using_Deep_Eigenspace_Learning.pdf
-
 # Files
 **.pkl
 **.png
 **.json
 **.pdf
 **.txt
+
+# Dataset & Paper being replicated
+/IoTMalwareDetection-master
+/14 Robust_Malware_Detection_for_Internet_of_Battlefield_Things_Devices_Using_Deep_Eigenspace_Learning.pdf
 
 # Folders needed
 /OpCode Graph Results
@@ -28,6 +28,9 @@
 /Archived
 /10-Fold CV Results
 /other models
+
+# Not sure...
+/CNN_ROC_and_Fold_Analysis
 
 
 
